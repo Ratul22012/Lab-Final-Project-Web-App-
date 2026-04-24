@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Navbar */
+    .navbar {
+      background: linear-gradient(90deg, #1b356e, #3559d3);
+    }
+
+    /* Dashboard card */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 0;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      max-width: 1100px;
+      margin: auto;
+      overflow: hidden;
+    }
+
+    /* Welcome text */
+    .dashboard-card h2 {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    /* Buttons */
+    .dashboard-btn {
+      padding: 12px 20px;
+      font-weight: 600;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .dashboard-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(53, 89, 211, 0.2);
+    }
+
+    /* Logout */
+    .logout-btn {
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    @media (min-width: 992px) {
+      .border-start-lg {
+        border-left: 1px solid #f0f0f0;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container justify-content-between">
+      <a class="navbar-brand fw-bold" href="#">⚡ AstroType</a>
+      <button class="btn btn-danger logout-btn btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <div class="dashboard-card">
+      <div class="row align-items-center">
+        <!-- Left Column: User Info & Actions -->
+        <div class="col-lg-5 text-start p-4">
+          <h2 class="mb-1">Hello, <span id="username" class="text-primary"></span>! 👋</h2>
+          <p class="text-muted mb-4">Ready to break your record today?</p>
+
+          <div class="d-grid gap-3">
+            <a href="typing-test.html" class="btn btn-primary dashboard-btn">
+              Start New Test
+            </a>
+            <a href="history.html" class="btn btn-outline-secondary dashboard-btn">
+              View History
+            </a>
+          </div>
+
+          <div class="mt-4 pt-3 border-top">
+            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">Quick
+              Stats</small>
+            <div class="d-flex justify-content-between mt-2">
+              <div>
+                <h4 class="mb-0 fw-bold" id="avg-wpm">-</h4>
+                <small class="text-muted">Avg WPM</small>
+              </div>
+              <div>
+                <h4 class="mb-0 fw-bold" id="best-wpm">-</h4>
+                <small class="text-muted">Best WPM</small>
+              </div>
+              <div>
+                <h4 class="mb-0 fw-bold" id="total-tests">-</h4>
+                <small class="text-muted">Tests</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Progress Graph -->
+        <div class="col-lg-7 p-4 border-start-lg">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0"><i class="bi bi-graph-up"></i> Performance History</h5>
+            <small class="text-muted">Last 10 Attempts</small>
+          </div>
+          <div style="height: 300px; width: 100%;">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const username = localStorage.getItem("username") || "User";
+    const userId = localStorage.getItem("userId"); // Matched with auth.js
+    document.getElementById("username").innerText = username;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "index.html";
+    }
+
+    // Fetch Data and Render Chart
+    async function loadDashboardData() {
+      if (!userId) return; // If no user ID, maybe stick to defaults or prompt login
+
+      try {
+        const response = await fetch(`http://localhost:8080/api/score/history/${userId}`);
+        if (!response.ok) throw new Error("Failed to fetch history");
+
+        const data = await response.json();
+        // Data comes in descending order usually, so reverse for the graph (Oldest -> Newest)
+        // Take only last 10 for cleaner graph
+        const recentTests = data.slice(0, 10).reverse();
+
+        const labels = recentTests.map((test, index) => `Test ${index + 1}`);
+        const wpmData = recentTests.map(test => test.wpm);
+        const accuracyData = recentTests.map(test => test.accuracy);
+
+        // Calculate Quick Stats
+        if (data.length > 0) {
+          const totalWpm = data.reduce((sum, test) => sum + test.wpm, 0);
+          const avgWpm = Math.round(totalWpm / data.length);
+          const bestWpm = Math.max(...data.map(test => test.wpm));
+
+          document.getElementById('avg-wpm').innerText = avgWpm;
+          document.getElementById('best-wpm').innerText = bestWpm;
+          document.getElementById('total-tests').innerText = data.length;
+        }
+
+        // Render Chart
+        const ctx = document.getElementById('progressChart').getContext('2d');
+
+        // Create gradient
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(53, 89, 211, 0.5)'); // Theme color
+        gradient.addColorStop(1, 'rgba(53, 89, 211, 0.05)');
+
+        new Chart(ctx, {
+          type: 'line', // Can be 'bar' if preferred, but line is better for progress
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'WPM',
+              data: wpmData,
+              borderColor: '#3559d3',
+              backgroundColor: gradient,
+              borderWidth: 3,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#3559d3',
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              fill: true,
+              tension: 0.4 // Smooth curves
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: '#1b356e',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                padding: 10,
+                displayColors: false,
+                callbacks: {
+                  label: function (context) {
+                    return `WPM: ${context.parsed.y} | Acc: ${accuracyData[context.dataIndex]}%`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  borderDash: [5, 5],
+                  color: '#e5e7eb'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      }
+    }
+
+    loadDashboardData();
+  </script>
+
+</body>
+
+</html>

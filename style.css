@@ -1,0 +1,27 @@
+body {
+    font-family: 'Arial', sans-serif;
+   
+    }
+
+
+textarea:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 5px rgba(13,110,253,0.5);
+}
+
+.navbar {
+    background-color: #ff5733; 
+  }
+
+#text-to-type {
+    font-size: 18px;
+
+    line-height: 1.6;}
+
+#text-to-type .correct {
+    color: green;   
+}
+#text-to-type .incorrect {
+    color: red;
+}
