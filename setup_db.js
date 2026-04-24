@@ -3,8 +3,8 @@ const mysql = require("mysql2");
 // Connect without selecting a database first
 const connection = mysql.createConnection({
     host: "localhost",
-    user: "Atif",
-    password: "arpita"
+    user: "root",
+    password: "ratul"
 });
 
 connection.connect(err => {
